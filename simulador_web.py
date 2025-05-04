@@ -15,7 +15,7 @@ st.markdown("---")
 # Inputs
 tipo = st.selectbox("Tipo de corte:", ["campo", "floresta"])
 area = st.number_input("Área do terreno (m²):", min_value=0.0, step=10.0, format="%.1f")
-altura = st.number_input("Altura da vegetação (m):", min_value=0.0, step=0.1, format="%.1f")
+altura = st.number_input("Altura da vegetação (cm):", min_value=0.0, step=0.1, format="%.1f")
 trabalhadores = st.number_input("Nº de trabalhadores:", min_value=1, step=1)
 margem = st.slider("Margem de lucro (%):", 0, 100, 25)
 
