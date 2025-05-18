@@ -1,52 +1,54 @@
 import streamlit as st
+import json
+import os
 
-# Configurações base
-config = {
-    "campo": {"rendimento": 200, "custo_m2": 0.0778},
-    "floresta": {"rendimento": 190, "custo_m2": 0.09502},
-}
+# Carrega o config.json
+CONFIG_FILE = "config.json"
 
+if not os.path.exists(CONFIG_FILE):
+    st.error("❌ Ficheiro config.json não encontrado.")
+    st.stop()
+
+with open(CONFIG_FILE, "r") as f:
+    config = json.load(f)
+
+# Interface
 st.set_page_config(page_title="Simulador de Terrenos", layout="centered")
+st.title("📊 Simulador de Limpeza de Terrenos")
+st.markdown("Preenche os dados abaixo para obter uma estimativa:")
 
-st.markdown("## 🛠️ Simulador de Orçamento - Limpeza de Terrenos")
-st.markdown("Calcular preço justo com base na área, altura da vegetação e equipa.")
-st.markdown("---")
-
-# Inputs
-tipo = st.selectbox("Tipo de corte:", ["campo", "floresta"])
-area = st.number_input("Área do terreno (m²):", min_value=0.0, step=10.0, format="%.1f")
-altura = st.number_input("Altura da vegetação (cm):", min_value=0.0, step=0.1, format="%.1f")
-trabalhadores = st.number_input("Nº de trabalhadores:", min_value=1, step=1)
-margem = st.slider("Margem de lucro (%):", 0, 100, 25)
+# Entradas
+tipo = st.selectbox("🪓 Tipo de corte:", ["Campo", "Floresta"]).lower()
+area = st.number_input("🧱 Área do terreno (m²):", min_value=0.0, step=10.0)
+altura_cm = st.number_input("🌿 Altura da vegetação (cm):", min_value=0.0, step=1.0)
+trabalhadores = st.number_input("👷 Nº de trabalhadores:", min_value=1, step=1)
+margem = st.slider("📈 Margem de lucro (%):", min_value=0, max_value=100, value=25)
 
 if st.button("Calcular orçamento"):
-    dados = config[tipo]
-    rendimento = dados["rendimento"]
-    custo_m2 = dados["custo_m2"]
+    try:
+        rendimento = config[tipo]["rendimento"]
 
-    # Fator de sujidade (conforme altura)
-    if altura <= 0.4:
-        fator_sujidade = 0.95
-    elif altura <= 1:
-        fator_sujidade = 1
-    elif altura <= 1.5:
-        fator_sujidade = 1.1
-    elif altura <= 2:
-        fator_sujidade = 1.2
-    elif altura <= 2.5:
-        fator_sujidade = 1.3
-    else:
-        fator_sujidade = 1.5
+        # Custo base €/m² conforme tipo e nº de trabalhadores
+        custos_base = {
+            "campo": {1: 0.0667, 2: 0.1334},
+            "floresta": {1: 0.08491, 2: 0.16982}
+        }
+        custo_m2_base = custos_base[tipo][1 if trabalhadores == 1 else 2]
 
-    rendimento_total = rendimento * trabalhadores / fator_sujidade
-    tempo_estimado = area / rendimento_total
+        # Fator vegetação
+        fator_vegetacao = 1 + (max(0, int((altura_cm - 30) / 10)) * 0.10)
 
-    custo_total = area * custo_m2
-    preco_final = custo_total * (1 + margem / 100)
+        # Cálculos
+        preco_com_iva = custo_m2_base * fator_vegetacao * area * 1.06
+        preco_final = preco_com_iva * (1 + margem / 100)
+        tempo_horas = (area / rendimento) * fator_vegetacao / trabalhadores
 
-    st.markdown("### 📊 Resultado")
-    st.success(f"⏱️ Tempo estimado: **{tempo_estimado:.2f} horas**")
-    st.success(f"💰 Preço final sugerido: **{preco_final:.2f} €**")
+        # Resultados
+        st.markdown("### 📊 Resultado")
+        st.success(f"⏱ Tempo estimado: **{tempo_horas:.1f} horas**")
+        st.success(f"💶 Preço Total com IVA: **{preco_com_iva:.2f} €**")
+        st.warning(f"💸 Preço Venda Total: **{preco_final:.2f} €**")
 
-    st.markdown("---")
-    st.info("Este simulador é uma ferramenta indicativa. Adapta conforme o terreno real.")
+        st.info("Este valor inclui fator de dificuldade pela altura da vegetação.")
+    except Exception as e:
+        st.error(f"Erro: {str(e)}")
