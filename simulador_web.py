@@ -1,18 +1,17 @@
 import streamlit as st
-import json
-import os
 
-# Carrega o config.json
-CONFIG_FILE = "config.json"
+# Configuração base diretamente no código
+config = {
+    "campo": {"rendimento": 200},
+    "floresta": {"rendimento": 190}
+}
 
-if not os.path.exists(CONFIG_FILE):
-    st.error("❌ Ficheiro config.json não encontrado.")
-    st.stop()
+custos_base = {
+    "campo": {1: 0.0667, 2: 0.1334},
+    "floresta": {1: 0.08491, 2: 0.16982}
+}
 
-with open(CONFIG_FILE, "r") as f:
-    config = json.load(f)
-
-# Interface
+# Interface Streamlit
 st.set_page_config(page_title="Simulador de Terrenos", layout="centered")
 st.title("📊 Simulador de Limpeza de Terrenos")
 st.markdown("Preenche os dados abaixo para obter uma estimativa:")
@@ -27,15 +26,9 @@ margem = st.slider("📈 Margem de lucro (%):", min_value=0, max_value=100, valu
 if st.button("Calcular orçamento"):
     try:
         rendimento = config[tipo]["rendimento"]
-
-        # Custo base €/m² conforme tipo e nº de trabalhadores
-        custos_base = {
-            "campo": {1: 0.0667, 2: 0.1334},
-            "floresta": {1: 0.08491, 2: 0.16982}
-        }
         custo_m2_base = custos_base[tipo][1 if trabalhadores == 1 else 2]
 
-        # Fator vegetação
+        # Fator vegetação (acima de 30cm acresce 10% por cada 10cm)
         fator_vegetacao = 1 + (max(0, int((altura_cm - 30) / 10)) * 0.10)
 
         # Cálculos
@@ -49,6 +42,6 @@ if st.button("Calcular orçamento"):
         st.success(f"💶 Preço Total com IVA: **{preco_com_iva:.2f} €**")
         st.warning(f"💸 Preço Venda Total: **{preco_final:.2f} €**")
 
-        st.info("Este valor inclui fator de dificuldade pela altura da vegetação.")
+        st.info("")
     except Exception as e:
-        st.error(f"Erro: {str(e)}")
+        st.error(f"Erro no cálculo: {str(e)}")
