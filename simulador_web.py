@@ -1,3 +1,4 @@
+
 from datetime import datetime
 from fpdf import FPDF
 import streamlit as st
@@ -88,7 +89,6 @@ def _safe_text(text: str, unicode_ok: bool) -> str:
     """
     if unicode_ok:
         return text
-    # fallback: troca € por EUR
     return text.replace("€", "EUR")
 
 def _draw_block_right(pdf: FPDF, y: float, lines: list[str], unicode_ok: bool, box_w: float = 85):
@@ -126,18 +126,22 @@ def gerar_pdf(
     pdf.set_auto_page_break(auto=True, margin=15)
 
     unicode_ok = _try_load_unicode_fonts(pdf)
-
     font_regular = "DejaVu" if unicode_ok else "Helvetica"
     font_bold = "DejaVu" if unicode_ok else "Helvetica"
 
-    # Título
-    pdf.set_font(font_bold, "B", 16) if unicode_ok else pdf.set_font(font_bold, "B", 16)
-    pdf.cell(0, 8, _safe_text("PROPOSTA DE ORÇAMENTO", unicode_ok), ln=1, align="L")
+    # ---------------------------
+    # HEADER CORRIGIDO (sem “Data” ao lado do título)
+    # ---------------------------
 
-    pdf.set_font(font_regular, "", 10)
-    pdf.cell(0, 6, _safe_text(f"Data: {datetime.now().strftime('%d/%m/%Y')}", unicode_ok), ln=1, align="L")
+    # 1) Título centrado no topo
+    pdf.set_y(10)
+    pdf.set_font(font_bold, "B", 16)
+    pdf.cell(0, 8, _safe_text("PROPOSTA DE ORÇAMENTO", unicode_ok), ln=1, align="C")
 
-    # Empresa (canto superior direito)
+    # 2) 2 linhas em branco
+    pdf.ln(12)
+
+    # 3) Bloco empresa (direita)
     empresa_lines = _compact_lines(
         empresa_nome,
         f"NIF: {empresa_nif}" if empresa_nif else "",
@@ -145,9 +149,8 @@ def gerar_pdf(
         f"Tel: {empresa_tel}" if empresa_tel else "",
         f"Email: {empresa_email}" if empresa_email else "",
     )
-    _draw_block_right(pdf, y=10, lines=empresa_lines, unicode_ok=unicode_ok, box_w=85)
 
-    # Cliente (por baixo, lado esquerdo)
+    # 4) Bloco cliente (esquerda) por baixo
     cliente_lines = _compact_lines(
         "Cliente:",
         cliente_nome,
@@ -156,20 +159,26 @@ def gerar_pdf(
         f"Tel: {cliente_tel}" if cliente_tel else "",
         f"Email: {cliente_email}" if cliente_email else "",
     )
-    _draw_block_left(pdf, y=32, lines=cliente_lines, unicode_ok=unicode_ok, box_w=120)
 
-    # Local da obra (opcional)
-    y_after_cliente = 32 + (len(cliente_lines) * 5) + 2
-    if obra_local.strip():
-        pdf.set_xy(pdf.l_margin, y_after_cliente)
-        pdf.set_font(font_bold, "B", 11) if unicode_ok else pdf.set_font(font_bold, "B", 11)
-        pdf.cell(0, 6, _safe_text("Local da obra:", unicode_ok), ln=1)
-        pdf.set_font(font_regular, "", 10)
-        pdf.multi_cell(0, 5, _safe_text(obra_local.strip(), unicode_ok))
-        y_after_cliente = pdf.get_y() + 2
+    # Posições fixas para nunca colidir com o título
+    header_blocks_top_y = pdf.get_y()       # depois das 2 linhas
+    empresa_y = header_blocks_top_y         # empresa começa aqui
+    cliente_y = empresa_y + 20              # cliente começa por baixo (ajusta se quiseres)
+
+    _draw_block_right(pdf, y=empresa_y, lines=empresa_lines, unicode_ok=unicode_ok, box_w=85)
+    _draw_block_left(pdf, y=cliente_y, lines=cliente_lines, unicode_ok=unicode_ok, box_w=120)
+
+    # 5) 1 linha em branco + Data por baixo dos dados
+    empresa_h = len(empresa_lines) * 5
+    cliente_h = len(cliente_lines) * 5
+    y_after_blocks = max(empresa_y + empresa_h, cliente_y + cliente_h)
+
+    pdf.set_y(y_after_blocks + 6)  # 1 linha
+    pdf.set_font(font_regular, "", 10)
+    pdf.cell(0, 6, _safe_text(f"Data: {datetime.now().strftime('%d/%m/%Y')}", unicode_ok), ln=1, align="L")
 
     # Separador
-    pdf.set_xy(pdf.l_margin, max(y_after_cliente, 55))
+    pdf.ln(2)
     pdf.set_draw_color(200, 200, 200)
     pdf.line(pdf.l_margin, pdf.get_y(), pdf.w - pdf.r_margin, pdf.get_y())
     pdf.ln(5)
@@ -177,7 +186,7 @@ def gerar_pdf(
     tipo_txt = "Campo" if tipo == "campo" else "Floresta"
 
     def write_section(title: str, body: str):
-        pdf.set_font(font_bold, "B", 11) if unicode_ok else pdf.set_font(font_bold, "B", 11)
+        pdf.set_font(font_bold, "B", 11)
         pdf.multi_cell(0, 6, _safe_text(title, unicode_ok))
         pdf.ln(1)
         pdf.set_font(font_regular, "", 10)
@@ -219,7 +228,7 @@ def gerar_pdf(
         pdf.ln(2)
 
     if str(observacoes).strip():
-        pdf.set_font(font_bold, "B", 10) if unicode_ok else pdf.set_font(font_bold, "B", 10)
+        pdf.set_font(font_bold, "B", 10)
         pdf.cell(0, 6, _safe_text("Observações:", unicode_ok), ln=1)
         pdf.set_font(font_regular, "", 10)
         pdf.multi_cell(0, 5, _safe_text(observacoes.strip(), unicode_ok))
