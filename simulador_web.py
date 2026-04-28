@@ -9,12 +9,12 @@ import os
 # ---------------------------
 config = {
     "campo": {"rendimento": 200},
-    "floresta": {"rendimento": 190},
+    "floresta": {"rendimento": 180},
 }
 
 custos_base = {
-    "campo": {1: 0.0667, 2: 0.1334},
-    "floresta": {1: 0.08491, 2: 0.16982},
+    "campo": {1: 0.0667, 2: 0.11339},
+    "floresta": {1: 0.08491, 2: 0.152838},
 }
 
 IVA = 0.06  # ajusta se precisares
