@@ -8,13 +8,13 @@ import os
 # Configuração base
 # ---------------------------
 config = {
-    "campo": {"rendimento": 200},
-    "floresta": {"rendimento": 180},
+    "campo": {"rendimento": 170},
+    "floresta": {"rendimento": 140},
 }
 
 custos_base = {
-    "campo": {1: 0.0667, 2: 0.11339},
-    "floresta": {1: 0.08491, 2: 0.152838},
+    "campo": {1: 0.08935, 2: 0.1787},
+    "floresta": {1: 0.11025, 2: 0.22051},
 }
 
 IVA = 0.06  # ajusta se precisares
@@ -40,7 +40,7 @@ def calcular(tipo, area, altura_cm, trabalhadores, margem):
     rendimento = config[tipo]["rendimento"]
     custo_m2_base = custos_base[tipo][1 if trabalhadores == 1 else 2]
 
-    fator_vegetacao = 1 + (max(0, int((altura_cm - 30) / 10)) * 0.10)
+    fator_vegetacao = 1 + (max(0, int((altura_cm - 50) / 10)) * 0.10)
 
     tempo_horas = (area / rendimento) * fator_vegetacao / trabalhadores
 
